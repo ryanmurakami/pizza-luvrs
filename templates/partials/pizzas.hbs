@@ -1,0 +1,10 @@
+<ul class="pizza-boxes">
+  {{#each pizzas}}
+    <li>
+      <a href="/pizza/{{id}}">
+        <img src="{{{img}}}" />
+        <div class="name">{{name}}</div>
+      </a>
+    </li>
+  {{/each}}
+</ul>

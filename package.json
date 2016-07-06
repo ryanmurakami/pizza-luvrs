@@ -1,0 +1,27 @@
+{
+  "name": "pizza-luvrs",
+  "version": "1.0.0",
+  "description": "A social oasis for lovers of pizza.",
+  "repository": "https://github.com/ryanmurakami/pizza-luvrs",
+  "main": "index.js",
+  "scripts": {
+    "start": "./node_modules/.bin/forever start index.js"
+  },
+  "author": "Ryan Lewis <ryanharrisonlewis@gmail.com>",
+  "license": "ISC",
+  "dependencies": {
+    "async": "2.0.0-rc.6",
+    "aws-sdk": "2.3.11",
+    "bcrypt": "0.8.6",
+    "boom": "3.1.3",
+    "bootflat": "2.0.4",
+    "forever": "0.15.2",
+    "handlebars": "4.0.5",
+    "hapi": "13.4.0",
+    "hapi-auth-cookie": "6.1.1",
+    "inert": "4.0.0",
+    "joi": "8.1.0",
+    "lodash": "4.12.0",
+    "vision": "4.1.0"
+  }
+}

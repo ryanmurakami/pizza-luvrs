@@ -1,0 +1,18 @@
+<body>
+  {{> header}}
+  <div id="viewPizza">
+    <div class="title">
+      <span class="pizza-name">{{pizza.name}}</span> by <a href="/user/{{pizza.username}}">{{pizza.username}}</a>
+    </div>
+    <img src="{{{pizza.img}}}" class="pizza-image"/>
+    <div class="pizza-toppings">
+      <h4>Toppings:</h4>
+      <ul>
+        {{#each pizza.toppings}}
+          <li>{{getToppingName this @root.toppings}}</li>
+        {{/each}}
+      </ul>
+    </div>
+  </div>
+  {{> footer}}
+</body>

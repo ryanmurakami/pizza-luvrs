@@ -1,0 +1,18 @@
+<body class="index">
+  {{> header}}
+  <div id="main">
+    <div id="callToAction">
+      <img src="/assets/logo_header.png" class="logo" />
+      <h2>Pizza is for everyone</h2>
+      <h3>Share your pie</h3>
+      <div class="make-pizza-button">
+        <a href="/make/pizza">Make a pizza!</a>
+      </div>
+    </div>
+    <div id="more">
+      <h2>Recent Pizzas</h2>
+      {{> pizzas}}
+    </div>
+    {{> footer}}
+  </div>
+</body>

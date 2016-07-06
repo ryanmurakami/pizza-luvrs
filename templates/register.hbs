@@ -1,0 +1,13 @@
+<body>
+  {{> header}}
+  <div id="registerForm">
+    <h2>Create a new account</h2>
+    <form action="/user" method="post">
+      <input id="username" name="username" placeholder="Username" type="text" />
+      <input id="password" name="password" placeholder="Password" type="password" />
+      <button type="submit">Register</button>
+    </form>
+    <div class="login-link"><a href="/login">Already have an account? Login.</a></div>
+  </div>
+  {{> footer}}
+</body>

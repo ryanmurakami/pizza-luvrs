@@ -1,0 +1,12 @@
+<header>
+  <img class="background" src="/assets/header.png" />
+  <a href="/"><img class="logo" src="/assets/logo_header.png" /></a>
+  <div class="user">
+    {{#if auth.isAuthenticated}}
+      Hi <a href="/user">{{auth.credentials.user.username}}</a>!&nbsp;&nbsp;
+      <a href="/logout">Logout</a>
+    {{else}}
+      <a href="/login">Login</a>
+    {{/if}}
+  </div>
+</header>

@@ -1,0 +1,27 @@
+<body>
+  {{> header}}
+  <div id="makePizza">
+    <h1>Let's make a pizza!</h1>
+    <div id="pizzaSection">
+      <div class="name">
+        <input type="text" id="pizzaName" placeholder="Name this pie"/>
+        <button id="createPizza" onclick="sendPizza()">Create</button>
+      </div>
+      <canvas id="pizza" height="400" width="400"></canvas>
+    </div>
+    <div id="toppingSection">
+      <h3>Choose your toppings</h3>
+      <ul id="toppings">
+        {{#each toppings}}
+          <li class="topping" id="{{id}}">
+            <img src='/assets/{{preview_image}}' />
+            <div class="label">{{name}}</div>
+          </li>
+        {{/each}}
+      </ul>
+    </div>
+    <div id="userInfo" data-username="{{auth.credentials.user.username}}" style="display:none;"></div>
+  </div>
+  {{> footer}}
+  <script src="/assets/js/make.js"></script>
+</body>
