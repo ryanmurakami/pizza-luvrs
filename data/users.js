@@ -1,6 +1,6 @@
 'use strict';
 
-const bcrypt = require('bcrypt'),
+const bcrypt = require('bcrypt-nodejs'),
   Boom = require('boom'),
   User = require('../models/user.js');
 
@@ -40,7 +40,7 @@ function validatePassword (passwordString, passwordHash, callback) {
 function hashPassword (passwordString, callback) {
   bcrypt.genSalt(saltRounds, (err, salt) => {
     if (err) callback(err);
-    else bcrypt.hash(passwordString, salt, (err, hash) => {
+    else bcrypt.hash(passwordString, salt, null, (err, hash) => {
       callback(err, hash);
     });
   });
