@@ -19,7 +19,10 @@ module.exports.registerPlugins = (server, callback) => {
       helpersPath: './templates/helpers'
     });
 
-    const cache = server.cache({ segment: 'sessions', expiresIn: 3 * 24 * 60 * 60 * 1000 });
+    const cache = server.cache({
+      segment: 'sessions',
+      expiresIn: 24 * 60 * 60 * 1000
+    });
     server.app.cache = cache;
 
     const redirectPath = '/login';
