@@ -1,14 +1,25 @@
 'use strict';
 
 const _ = require('lodash'),
-  Pizza = require('../models/pizza.js'),
+  Pizza = require('../models/pizza'),
+  ImageStore = require('../lib/imageStore'),
   pizzas = {};
 
 function createPizza (name, toppings, img, username, callback) {
-  let id = name.replace(/ /g, '-'),
-    pizza = new Pizza(id, name, toppings, img, username);
-  pizzas[id] = pizza;
-  callback(null, pizza);
+
+  ImageStore.saveImage(name.replace(/ /g, '-'), img, (err, imgUrl) => {
+    if (err) throw err;
+
+    let pizza = new Pizza(name, toppings, imgUrl, username);
+    pizzas[pizza.id] = pizza;
+    callback(null, pizza);
+  });
+}
+
+// for mocks that don't need pizza images saved
+function importPizza (name, toppings, imgUrl, username) {
+  let pizza = new Pizza(name, toppings, imgUrl, username);
+  pizzas[pizza.id] = pizza;
 }
 
 function getPizzaForUser (username, callback) {
@@ -33,6 +44,7 @@ function getPizza (pizzaId, callback) {
 }
 
 module.exports.createPizza = createPizza;
+module.exports.importPizza = importPizza;
 module.exports.getPizzaForUser = getPizzaForUser;
 module.exports.getPizzas = getPizzas;
 module.exports.getPizza = getPizza;

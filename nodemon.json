@@ -1,5 +1,4 @@
 {
-  "watch": [
-    "**/*.*"
-  ]
+  "watch": ["**/*.*"],
+  "ignore": ["assets/pizzas/*.*"],
 }

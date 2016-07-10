@@ -1,7 +1,7 @@
 'use strict';
 
-const userStore = require('../data/users.js'),
-  pizzaStore = require('../data/pizzas.js');
+const userStore = require('../data/users'),
+  pizzaStore = require('../data/pizzas');
 
 function postUser (req, reply) {
   userStore.createUser(req.payload.username, req.payload.password, (user) => {

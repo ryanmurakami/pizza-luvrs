@@ -2,7 +2,7 @@
 
 const bcrypt = require('bcrypt-nodejs'),
   Boom = require('boom'),
-  User = require('../models/user.js');
+  User = require('../models/user');
 
 const users = {},
   saltRounds = 10;

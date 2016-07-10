@@ -1,6 +1,6 @@
 'use strict';
 
-const Topping = require('../models/topping.js'),
+const Topping = require('../models/topping'),
   _ = require('lodash');
 
 const toppings = {};

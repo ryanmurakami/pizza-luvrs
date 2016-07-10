@@ -1,6 +1,6 @@
 'use strict';
 
-const toppingStore = require('../data/toppings.js');
+const toppingStore = require('../data/toppings');
 
 function makePizza (req, reply) {
   toppingStore.getAllToppings((err, toppings) => {

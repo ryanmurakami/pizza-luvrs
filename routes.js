@@ -1,7 +1,7 @@
 'use strict';
 
-const handlers = require('./handlers.js'),
-  transfile = require('./lib/transfile.js');
+const handlers = require('./handlers'),
+  transfile = require('./lib/transfile');
 
 module.exports.registerRoutes = (server) => {
   const files = transfile(__dirname + '/routes/'),

@@ -2,7 +2,7 @@
 
 const Joi = require('joi'),
   Boom = require('boom'),
-  users = require('../data/users.js'),
+  users = require('../data/users'),
   querystring = require('querystring');
 
 module.exports = (req, reply) => {

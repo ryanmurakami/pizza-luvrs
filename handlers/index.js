@@ -1,6 +1,6 @@
 'use strict';
 
-const pizzaStore = require('../data/pizzas.js');
+const pizzaStore = require('../data/pizzas');
 
 module.exports = (req, reply) => {
   pizzaStore.getRecentPizzas((err, pizzas) => {

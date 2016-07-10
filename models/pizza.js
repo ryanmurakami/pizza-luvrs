@@ -1,7 +1,7 @@
 'use strict';
 
-module.exports = function (id, name, toppings, img, username) {
-  this.id = id;
+module.exports = function (name, toppings, img, username) {
+  this.id = name.replace(/ /g, '-');
   this.name = name;
   this.toppings = toppings;
   this.img = img;
