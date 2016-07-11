@@ -14,6 +14,7 @@ attachHandlers();
 function loadImages () {
   $.each(toppings, function (key, val) {
     var img = new Image();
+    img.setAttribute('crossOrigin', 'anonymous');
     img.src = '/assets/toppings/' + val.image;
     val.img = img;
   });
