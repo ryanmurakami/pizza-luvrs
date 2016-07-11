@@ -14,7 +14,7 @@ attachHandlers();
 function loadImages () {
   $.each(toppings, function (key, val) {
     var img = new Image();
-    img.src = '/assets/' + val.image;
+    img.src = '/assets/toppings/' + val.image;
     val.img = img;
   });
 }
