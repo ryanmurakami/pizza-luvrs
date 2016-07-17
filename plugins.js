@@ -1,10 +1,30 @@
 'use strict';
 
+let goodOptions = {
+  reporters: {
+    file: [{
+      module: 'good-squeeze',
+      name: 'Squeeze',
+      args: [{ response: '*', request: '*', error: '*' }]
+    }, {
+      module: 'good-squeeze',
+      name: 'SafeJson'
+    }, {
+      module: 'good-file',
+      args: ['./log/hapi_log']
+    }]
+  }
+};
+
 module.exports.registerPlugins = (server, callback) => {
   server.register([
-      require('inert'),
-      require('vision'),
-      require('hapi-auth-cookie')
+      { register: require('inert') },
+      { register: require('vision') },
+      { register: require('hapi-auth-cookie') },
+      {
+        register: require('good'),
+        options: goodOptions
+      }
   ], (err) => {
     if (err) callback(err);
 
