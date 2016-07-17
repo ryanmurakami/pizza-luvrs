@@ -28,6 +28,10 @@ function postPizza (req, reply) {
     username = data.username,
     img = data.img;
   pizzaStore.createPizza(name, toppings, img, username, (err, pizza) => {
+    if (err) {
+      console.log('error on putting s3 object: ' + err);
+      return reply(Boom.badImplementation('Could not create pizza.'));
+    }
     return reply();
   });
 }
