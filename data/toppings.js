@@ -21,10 +21,6 @@ function initToppings (callback) {
   if (callback) callback();
 }
 
-function getTopping (toppingId, callback) {
-  callback(null, toppings[toppingId]);
-}
-
 function getAllToppings (callback) {
   let tops = _.values(toppings);
   callback(null, _.sortBy(tops, ['order']));
@@ -37,6 +33,5 @@ function createTopping (name, preview_image, image, order) {
   toppings[id] = topping;
 }
 
-module.exports.getTopping = getTopping;
 module.exports.getAllToppings = getAllToppings;
 module.exports.initToppings = initToppings;
