@@ -15,4 +15,7 @@ module.exports.insertData = () => {
     let pizza = files[key];
     pizzas.importPizza(pizza.name, pizza.toppings, pizza.img, pizza.username);
   }
+
+  // prep toppings
+  require('./toppings.js').initToppings();
 };

@@ -68,11 +68,8 @@ module.exports.registerPlugins = (server, callback) => {
       }
     });
 
-    // mock data
+    // setup data
     require('./data/mock.js').insertData();
-
-    // prep toppings
-    require('./data/toppings.js').initToppings();
 
     callback();
   });
