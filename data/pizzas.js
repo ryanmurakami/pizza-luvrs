@@ -6,7 +6,6 @@ const _ = require('lodash'),
   pizzas = {};
 
 function createPizza (name, toppings, img, username, callback) {
-
   ImageStore.saveImage(name.replace(/ /g, '-'), img, (err, imgUrl) => {
     if (err) throw err;
 
