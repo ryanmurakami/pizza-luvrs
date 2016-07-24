@@ -29,10 +29,6 @@ function getPizzaForUser (username, callback) {
   callback(null, userPizzas);
 }
 
-function getPizzas (callback) {
-  callback(null, pizzas);
-}
-
 function getRecentPizzas (callback) {
   let recentPizzas = _.orderBy(pizzas, ['created'], ['desc']);
   callback(null, _.values(recentPizzas).splice(0, 5));
@@ -46,6 +42,5 @@ function getPizza (pizzaId, callback) {
 module.exports.createPizza = createPizza;
 module.exports.importPizza = importPizza;
 module.exports.getPizzaForUser = getPizzaForUser;
-module.exports.getPizzas = getPizzas;
 module.exports.getPizza = getPizza;
 module.exports.getRecentPizzas = getRecentPizzas;
