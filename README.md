@@ -6,6 +6,8 @@ This repository contains the demo project for the [AWS Developer: Getting Starte
 
 Pizza Luvrs is a social network for people who love pizza. Users can create accountas, create pizzas, and share them with others.
 
+![Pizza Luvrs](assets/pizza_shot.png)
+
 ## Known Issues
 
 None at this time.
@@ -15,5 +17,6 @@ Found one? Please let me know by opening an [issue](https://github.com/ryanmurak
 ## License
 
 All Images copyright Ryan Lewis
+
 All Code under MIT license
 
