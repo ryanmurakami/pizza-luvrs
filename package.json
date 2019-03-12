@@ -8,7 +8,7 @@
     "start": "node index.js"
   },
   "author": "Ryan Lewis <ryanharrisonlewis@gmail.com>",
-  "license": "ISC",
+  "license": "MIT",
   "dependencies": {
     "async": "2.0.0-rc.6",
     "aws-sdk": "2.3.11",
