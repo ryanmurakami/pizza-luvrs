@@ -1,45 +1,39 @@
-'use strict';
+const Boom = require('@hapi/boom')
 
-const async = require('async'),
-  userStore = require('../data/users'),
-  pizzaStore = require('../data/pizzas'),
-  toppingsStore = require('../data/toppings');
+const pizzaStore = require('../data/pizzas')
+const toppingsStore = require('../data/toppings')
 
-function getPizza (req, reply) {
-  async.parallel([
-    toppingsStore.getAllToppings,
-    (callback) => {
-      pizzaStore.getPizza(req.params.pizzaId, callback);
-    }
-  ], (err, data) => {
-    let context = {
-      toppings: data[0],
-      pizza: data[1],
-      auth: req.auth
-    };
-    return reply.view('pizza', context);
-  });
-}
-
-function postPizza (req, reply) {
-  let data = req.payload,
-    name = data.name,
-    toppings = data.toppings,
-    username = data.username,
-    img = data.img;
-  pizzaStore.createPizza(name, toppings, img, username, (err, pizza) => {
-    if (err) {
-      console.log('error on putting s3 object: ' + err);
-      return reply(Boom.badImplementation('Could not create pizza.'));
-    }
-    return reply();
-  });
-}
-
-module.exports = (req, reply) => {
-  if (req.method === 'get') {
-    getPizza(req, reply);
-  } else if (req.method === 'post') {
-    postPizza(req, reply);
+async function getPizza (req, h) {
+  const toppings = await toppingsStore.getAll()
+  const pizza = await pizzaStore.get(req.params.pizzaId)
+  const context = {
+    auth: req.auth,
+    pizza,
+    toppings
   }
-};
+
+  return h.view('pizza', context)
+}
+
+async function postPizza (req) {
+  const data = req.payload
+  const name = data.name
+  const toppings = data.toppings
+  const username = data.username
+  const img = data.img
+
+  try {
+    return pizzaStore.create(name, toppings, img, username)
+  } catch (err) {
+    console.error(`Error on putting s3 object: ${err}`)
+    return Boom.badImplementation('Could not create pizza.')
+  }
+}
+
+module.exports = (req, h) => {
+  if (req.method === 'get') {
+    return getPizza(req, h)
+  } else if (req.method === 'post') {
+    return postPizza(req)
+  }
+}

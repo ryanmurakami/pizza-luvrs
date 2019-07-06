@@ -1,9 +1,6 @@
-'use strict';
+const toppingStore = require('../data/toppings')
 
-const toppingStore = require('../data/toppings');
-
-module.exports = (req, reply) => {
-  toppingStore.getAllToppings((err, toppings) => {
-    return reply(toppings);
-  });
-};
+module.exports = () => {
+  const toppings = toppingStore.getAll()
+  return toppings
+}

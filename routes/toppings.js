@@ -1,12 +1,10 @@
-'use strict';
-
-module.exports = (handlers) => {
-  return {
-    method: 'GET',
-    path: '/toppings',
-    config: {
-      handler: handlers.toppings,
-      auth: { mode: 'try' }
+module.exports = handlers => ({
+  method: 'GET',
+  path: '/toppings',
+  handler: handlers.toppings,
+  options: {
+    auth: {
+      mode: 'try'
     }
-  };
-};
+  }
+})

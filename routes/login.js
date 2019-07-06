@@ -1,17 +1,10 @@
-'use strict';
-
-module.exports = (handlers) => {
-  return {
-    method: ['GET', 'POST'],
-    path: '/login',
-    config: {
-      handler: handlers.login,
-      auth: { mode: 'try' },
-      plugins: {
-        'hapi-auth-cookie': {
-          redirectTo: false
-        }
-      }
+module.exports = handlers => ({
+  method: 'GET',
+  path: '/login',
+  handler: handlers.login,
+  options: {
+    auth: {
+      mode: 'try'
     }
-  };
-};
+  }
+})

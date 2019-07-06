@@ -1,46 +1,32 @@
-'use strict';
+const Boom = require('@hapi/boom')
 
-const Joi = require('joi'),
-  Boom = require('boom'),
-  users = require('../data/users'),
-  querystring = require('querystring');
+const users = require('../data/users')
+const querystring = require('querystring')
 
-module.exports = (req, reply) => {
-  const loginSchema = Joi.object().keys({
-    username: Joi.string().alphanum().min(3).max(30).required(),
-    password: Joi.string().min(3).max(30).required()
-  });
-
+module.exports = async (req, h) => {
   if (req.auth.isAuthenticated) {
-    return reply.redirect('/');
+    return h.redirect('/')
   }
 
   if (req.method === 'post') {
-    Joi.validate(req.payload, loginSchema, (err, val) => {
-      if (err) return reply(Boom.badRequest(err));
-
-      users.authenticateUser(req.payload.username.toLowerCase(), req.payload.password, (err, res, user) => {
-        if (err || !res) return reply(Boom.unauthorized());
-        let sid = String(Math.random());
-        req.server.app.cache.set(sid, user, 0, (err) => {
-          if (err) return reply(Boom.badImplementation(err));
-          req.cookieAuth.set({ sid: sid, user: user });
-          return reply.redirect(getNext(req.headers.referer) || '/');
-        });
-      });
-    });
+    const user = await users.authenticate(req.payload.username.toLowerCase(), req.payload.password)
+    if (!user) return Boom.unauthorized()
+    const sid = String(Math.random())
+    await req.server.app.cache.set(sid, user, 0)
+    req.cookieAuth.set({ sid: sid, user: user })
+    return h.redirect(getNext(req.headers.referer) || '/')
   } else if (req.method === 'get') {
-    return reply.view('login');
+    return h.view('login')
   }
-};
+}
 
 function getNext (referer) {
-  let next = '';
+  let next = ''
   if (referer) {
-    let refererSplit = referer.split('?');
+    let refererSplit = referer.split('?')
     if (refererSplit[1]) {
-      next = querystring.parse(refererSplit[1]).next;
+      next = querystring.parse(refererSplit[1]).next
     }
   }
-  return next;
+  return next
 }

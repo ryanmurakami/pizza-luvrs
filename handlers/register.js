@@ -1,3 +1,3 @@
-module.exports = (req, reply) => {
-  return reply.view('register');
-};
+module.exports = (req, h) => {
+  return h.view('register')
+}

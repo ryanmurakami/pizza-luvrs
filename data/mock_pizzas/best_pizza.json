@@ -1,5 +1,5 @@
 {
-	"name": "best pizza",
+	"name": "Best Pizza",
 	"toppings": ["dough_crust", "marinara_sauce", "mozzarella_cheese", "cheddar_cheese", "mushrooms", "pepperoni", "banana_peppers", "ham", "green_peppers"],
 	"img": "/assets/pizzas/best-pizza.png",
 	"username": "ryan"

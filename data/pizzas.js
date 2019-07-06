@@ -1,45 +1,44 @@
-'use strict';
+const { filter, orderBy, values } = require('lodash')
 
-const _ = require('lodash'),
-  Pizza = require('../models/pizza'),
-  ImageStore = require('../lib/imageStore'),
-  pizzas = {};
+const Pizza = require('../models/pizza')
+const ImageStore = require('../lib/imageStore')
 
-function createPizza (name, toppings, img, username, callback) {
-  ImageStore.saveImage(name.replace(/ /g, '-'), img, (err, imgUrl) => {
-    if (err) throw err;
+const pizzas = {}
 
-    let pizza = new Pizza(name, toppings, imgUrl, username);
-    pizzas[pizza.id] = pizza;
-    callback(null, pizza);
-  });
+async function create (name, toppings, img, username) {
+  const imgUrl = await ImageStore.save(name.replace(/ /g, '-'), img)
+  const pizza = new Pizza(name, toppings, imgUrl, username)
+  pizzas[pizza.id] = pizza
+  return pizza
 }
 
 // for mocks that don't need pizza images saved
-function importPizza (name, toppings, imgUrl, username) {
-  let pizza = new Pizza(name, toppings, imgUrl, username);
-  pizzas[pizza.id] = pizza;
+function batchImport (name, toppings, imgUrl, username) {
+  const pizza = new Pizza(name, toppings, imgUrl, username)
+  pizzas[pizza.id] = pizza
 }
 
-function getPizzaForUser (username, callback) {
-  let userPizzas = _.filter(pizzas, (pizza) => {
-    return pizza.username === username;
-  });
-  callback(null, userPizzas);
+async function getForUser (username) {
+  const userPizzas = filter(pizzas, pizza =>
+    pizza.username === username
+  )
+  return userPizzas
 }
 
-function getRecentPizzas (callback) {
-  let recentPizzas = _.orderBy(pizzas, ['created'], ['desc']);
-  callback(null, _.values(recentPizzas).splice(0, 5));
+async function getRecent () {
+  const recentPizzas = orderBy(pizzas, ['created'], ['desc'])
+  return values(recentPizzas).splice(0, 5)
 }
 
-function getPizza (pizzaId, callback) {
-  if (!pizzas[pizzaId]) callback('Pizza not found');
-  else callback(null, pizzas[pizzaId]);
+async function get (pizzaId) {
+  if (!pizzas[pizzaId]) throw new Error('Pizza not found')
+  return pizzas[pizzaId]
 }
 
-module.exports.createPizza = createPizza;
-module.exports.importPizza = importPizza;
-module.exports.getPizzaForUser = getPizzaForUser;
-module.exports.getPizza = getPizza;
-module.exports.getRecentPizzas = getRecentPizzas;
+module.exports = {
+  batchImport,
+  create,
+  get,
+  getForUser,
+  getRecent
+}

@@ -1,12 +1,8 @@
-'use strict';
-
-module.exports = (handlers) => {
-  return {
-    method: 'GET',
-    path: '/register',
-    config: {
-      handler: handlers.register,
-      auth: false
-    }
-  };
-};
+module.exports = handlers => ({
+  method: 'GET',
+  path: '/register',
+  handler: handlers.register,
+  options: {
+    auth: false
+  }
+})
