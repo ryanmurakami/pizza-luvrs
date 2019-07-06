@@ -1,3 +1,5 @@
+/* eslint-disable no-undef */
+/* eslint-disable no-unused-vars */
 const toppings = {}
 
 $.get('/toppings', function (data) {
@@ -71,3 +73,5 @@ function sendPizza () {
     }
   })
 }
+/* eslint-enable no-undef */
+/* eslint-enable no-unused-vars */
