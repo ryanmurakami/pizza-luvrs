@@ -1,43 +1,33 @@
-'use strict';
+const { get } = require('lodash')
 
-const userStore = require('../data/users'),
-  pizzaStore = require('../data/pizzas');
+const userStore = require('../data/users')
+const pizzaStore = require('../data/pizzas')
 
-function postUser (req, reply) {
-  userStore.createUser(req.payload.username, req.payload.password, (user) => {
-    let sid = String(Math.random());
-    req.server.app.cache.set(sid, user, 0, (err) => {
-      if (err) return reply(Boom.baddImplementation(err));
-      req.cookieAuth.set({ sid: sid, user: user });
-      return reply.redirect('/login');
-    });
-  });
+async function postUser (req, h) {
+  const user = await userStore.create(req.payload.username, req.payload.password)
+  const sid = String(Math.random())
+  await req.server.app.cache.set(sid, user, 0)
+  req.cookieAuth.set({ sid: sid, user: user })
+  return h.redirect('/login')
 }
 
-function getUser (req, reply) {
-  let username = req.params.username || req.auth.credentials.user.username;
-  pizzaStore.getPizzaForUser(username, (err, pizzas) => {
-    let context = {
-      username: username,
-      auth: req.auth,
-      pizzas: pizzas
-    };
-    return reply.view('user', context);
-  });
+async function getUser (req, h) {
+  const username = get(req, 'params.username') || get(req, 'auth.credentials.user.username')
+  const pizzas = await pizzaStore.getForUser(username)
+  const context = {
+    username: username,
+    auth: req.auth,
+    pizzas: pizzas
+  }
+
+  return h.view('user', context)
 }
 
-function putUser (req, reply) {
-
-}
-
-module.exports = (req, reply) => {
+module.exports = (req, h) => {
   if (req.method === 'get') {
-    getUser(req, reply);
+    return getUser(req, h)
   }
   if (req.method === 'post') {
-    postUser(req, reply);
+    return postUser(req, h)
   }
-  if (req.method === 'put') {
-    putUser(req, reply);
-  }
-};
+}

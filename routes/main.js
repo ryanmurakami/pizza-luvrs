@@ -1,7 +1,7 @@
 module.exports = handlers => ({
   method: 'GET',
-  path: '/user/{username?}',
-  handler: handlers.user,
+  path: '/',
+  handler: handlers.main,
   options: {
     auth: {
       mode: 'try'

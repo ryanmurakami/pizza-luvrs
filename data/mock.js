@@ -1,21 +1,25 @@
-'use strict';
+const pizzas = require('./pizzas')
+const users = require('./users')
+const toppings = require('./toppings')
 
-const pizzas = require('./pizzas'),
-  Pizza = require('../models/pizza'),
-  users = require('./users'),
-  transfile = require('../lib/transfile');
+const mockPizzas = [
+  require('./mock_pizzas/best_pizza.json'),
+  require('./mock_pizzas/filthy_rich.json'),
+  require('./mock_pizzas/foul_wizard.json'),
+  require('./mock_pizzas/lazer_pie.json'),
+  require('./mock_pizzas/meat_haters.json'),
+  require('./mock_pizzas/red_forever.json')
+]
 
-module.exports.insertData = () => {
-  users.createUser('ryan', 'pass', () => {});
-  users.createUser('jim', 'pass', () => {});
-  users.createUser('kathy', 'pass', () => {});
+module.exports.hydrate = () => {
+  users.create('ryan', 'pass', () => {})
+  users.create('jim', 'pass', () => {})
+  users.create('kathy', 'pass', () => {})
 
-  const files = transfile(__dirname + '/mock_pizzas/');
-  for (let key in files) {
-    let pizza = files[key];
-    pizzas.importPizza(pizza.name, pizza.toppings, pizza.img, pizza.username);
+  for (const pizza of mockPizzas) {
+    pizzas.batchImport(pizza.name, pizza.toppings, pizza.img, pizza.username)
   }
 
   // prep toppings
-  require('./toppings.js').initToppings();
-};
+  toppings.init()
+}

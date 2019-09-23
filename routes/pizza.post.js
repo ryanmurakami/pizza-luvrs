@@ -1,11 +1,5 @@
-'use strict';
-
-module.exports = (handlers) => {
-  return {
-    method: 'POST',
-    path: '/pizza',
-    config: {
-      handler: handlers.pizza
-    }
-  };
-};
+module.exports = handlers => ({
+  method: 'POST',
+  path: '/pizza',
+  handler: handlers.pizza
+})

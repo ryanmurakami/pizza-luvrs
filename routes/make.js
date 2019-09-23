@@ -1,11 +1,5 @@
-'use strict';
-
-module.exports = (handlers) => {
-  return {
-    method: 'GET',
-    path: '/make/{target}',
-    config: {
-      handler: handlers.make
-    }
-  };
-};
+module.exports = handlers => ({
+  method: 'GET',
+  path: '/make/{target}',
+  handler: handlers.make
+})

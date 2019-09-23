@@ -1,12 +1,8 @@
-'use strict';
-
-module.exports = (handlers) => {
-  return {
-    method: 'POST',
-    path: '/user',
-    config: {
-      handler: handlers.user,
-      auth: false
-    }
-  };
-};
+module.exports = handlers => ({
+  method: 'POST',
+  path: '/user',
+  handler: handlers.user,
+  options: {
+    auth: false
+  }
+})

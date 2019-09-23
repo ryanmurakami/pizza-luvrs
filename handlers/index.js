@@ -1,14 +1,10 @@
-'use strict';
-
-const pizzaStore = require('../data/pizzas');
-
-module.exports = (req, reply) => {
-  pizzaStore.getRecentPizzas((err, pizzas) => {
-    const context = {
-      auth: req.auth,
-      pizzas: pizzas
-    };
-
-    return reply.view('index', context);
-  });
-};
+module.exports = {
+  login: require('./login'),
+  logout: require('./logout'),
+  main: require('./main'),
+  make: require('./make'),
+  pizza: require('./pizza'),
+  register: require('./register'),
+  toppings: require('./toppings'),
+  user: require('./user')
+}

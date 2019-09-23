@@ -1,19 +1,27 @@
-'use strict';
+const Hapi = require('@hapi/hapi')
 
-const Hapi = require('hapi');
+const plugins = require('./plugins')
+const routes = require('./routes')
 
-const server = new Hapi.Server();
-server.connection({ port: process.env.PORT || 3000 });
+async function startServer () {
+  const server = Hapi.Server({
+    port: process.env.PORT || 3000
+  })
 
-function startServer() {
-  server.start((err) => {
-    if (err) throw err;
-    console.log('Server running at: ', server.info.uri);
-  });
+  await plugins.register(server)
+  routes.register(server)
+
+  try {
+    await server.start()
+    console.log(`Server running at: ${server.info.uri}`)
+  } catch (err) {
+    console.error(`Server could not start. Error: ${err}`)
+  }
 }
 
-require('./plugins.js').registerPlugins(server, (err) => {
-  if (err) throw err;
-  require('./routes.js').registerRoutes(server);
-  startServer();
-});
+process.on('unhandledRejection', err => {
+  console.log(err)
+  process.exit()
+})
+
+startServer()

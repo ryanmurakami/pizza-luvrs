@@ -1,51 +1,47 @@
-'use strict';
+const bcrypt = require('bcryptjs')
+const Boom = require('@hapi/boom')
 
-const bcrypt = require('bcrypt-nodejs'),
-  Boom = require('boom'),
-  User = require('../models/user');
+const User = require('../models/user')
 
-const users = {},
-  saltRounds = 10;
+const users = {}
+const saltRounds = 10
 
-function createUser (username, passwordString, callback) {
+async function create (username, passwordString) {
   if (users[username]) {
-    throw Boom.conflict('Username already exists');
+    throw Boom.conflict('Username already exists')
   }
-  hashPassword(passwordString, (err, passwordHash) => {
-    let user = new User(username, passwordHash);
-    users[username] = user;
-    callback(null, user);
-  });
-};
 
-function getUser (username, callback) {
-  callback(null, users[username]);
-};
-
-function authenticateUser (username, passwordString, callback) {
-  getUser(username, (err, user) => {
-    if (err || !user) callback('User not found');
-    else validatePassword(passwordString, user.passwordHash, (err, res) => {
-      callback(err, res, res ? user : null);
-    });
-  });
-};
-
-function validatePassword (passwordString, passwordHash, callback) {
-  bcrypt.compare(passwordString, passwordHash, (err, res) => {
-    callback(err, res);
-  });
+  const passwordHash = hashPassword(passwordString)
+  const user = new User(username, passwordHash)
+  users[username] = user
 }
 
-function hashPassword (passwordString, callback) {
-  bcrypt.genSalt(saltRounds, (err, salt) => {
-    if (err) callback(err);
-    else bcrypt.hash(passwordString, salt, null, (err, hash) => {
-      callback(err, hash);
-    });
-  });
+async function get (username) {
+  return users[username]
 }
 
-module.exports.createUser = createUser;
-module.exports.getUser = getUser;
-module.exports.authenticateUser = authenticateUser;
+async function authenticate (username, passwordString) {
+  const user = await get(username)
+
+  if (!user) throw new Error('User not found')
+
+  const valid = validatePassword(passwordString, user.passwordHash)
+
+  return valid ? user : null
+}
+
+function validatePassword (passwordString, passwordHash) {
+  return bcrypt.compareSync(passwordString, passwordHash)
+}
+
+function hashPassword (passwordString) {
+  const salt = bcrypt.genSaltSync(saltRounds)
+  const hash = bcrypt.hashSync(passwordString, salt)
+  return hash
+}
+
+module.exports = {
+  authenticate,
+  create,
+  get
+}
