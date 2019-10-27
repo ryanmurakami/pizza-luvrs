@@ -14,6 +14,7 @@ async function create (username, passwordString) {
   const passwordHash = hashPassword(passwordString)
   const user = new User(username, passwordHash)
   users[username] = user
+  return user
 }
 
 async function get (username) {
