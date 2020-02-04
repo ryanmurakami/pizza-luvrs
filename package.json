@@ -27,6 +27,6 @@
     "handlebars": "4.3.0",
     "lodash": "4.17.13",
     "pg": "7.11.0",
-    "sequelize": "5.9.4"
+    "sequelize": "5.15.1"
   }
 }
