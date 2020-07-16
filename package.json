@@ -25,7 +25,7 @@
     "bootflat": "2.0.4",
     "fs-extra": "8.1.0",
     "handlebars": "4.3.0",
-    "lodash": "4.17.13",
+    "lodash": "4.17.19",
     "pg": "7.11.0",
     "sequelize": "5.9.4"
   }
