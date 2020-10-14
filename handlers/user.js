@@ -4,7 +4,7 @@ const userStore = require('../data/users')
 const pizzaStore = require('../data/pizzas')
 
 async function postUser (req, h) {
-  const user = await userStore.create(req.payload.username, req.payload.password)
+  const user = await userStore.create(req.payload.username.toLowerCase(), req.payload.password)
   const sid = String(Math.random())
   await req.server.app.cache.set(sid, user, 0)
   req.cookieAuth.set({ sid: sid, user: user })

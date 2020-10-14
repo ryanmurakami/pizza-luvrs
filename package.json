@@ -1,6 +1,6 @@
 {
   "name": "pizza-luvrs",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "A social oasis for lovers of pizza.",
   "repository": "https://github.com/ryanmurakami/pizza-luvrs",
   "main": "index.js",
