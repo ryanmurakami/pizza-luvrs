@@ -104,9 +104,14 @@
       }
     },
     "PizzaElasticLoadBalancer": {
-      "Type": "AWS::ElasticLoadBalancing::LoadBalancer",
+      "Type": "AWS::ElasticLoadBalancingV2::LoadBalancer",
       "DependsOn": "PizzaVPCGatewayAttachment",
       "Properties": {
+        "SecurityGroups": [
+          {
+            "Ref": "PizzaELBSecurityGroup"
+          }
+        ],
         "Subnets": [
           {
             "Ref": "PizzaSubnetA"
@@ -115,43 +120,49 @@
             "Ref": "PizzaSubnetB"
           }
         ],
-        "HealthCheck": {
-          "HealthyThreshold": "10",
-          "Interval": "30",
-          "Target": "HTTP:3000/",
-          "Timeout": "5",
-          "UnhealthyThreshold": "2"
-        },
-        "ConnectionDrainingPolicy": {
-          "Enabled": "true",
-          "Timeout": "300"
-        },
-        "ConnectionSettings": {
-          "IdleTimeout": "60"
-        },
-        "CrossZone": "true",
-        "SecurityGroups": [
-          {
-            "Ref": "PizzaELBSecurityGroup"
-          }
-        ],
-        "Listeners": [
-          {
-            "InstancePort": "3000",
-            "LoadBalancerPort": "80",
-            "Protocol": "HTTP",
-            "InstanceProtocol": "HTTP",
-            "PolicyNames": [
-              "AWSConsole-LBCookieStickinessPolicy-pizza-loader-1467924383840"
-            ]
-          }
-        ],
-        "LBCookieStickinessPolicy": [
-          {
-            "PolicyName": "AWSConsole-LBCookieStickinessPolicy-pizza-loader-1467924383840",
-            "CookieExpirationPeriod": "86400"
-          }
-        ]
+        "Scheme": "internet-facing",
+        "Type": "application"
+      }
+    },
+    "PizzaELBListener": {
+      "Type" : "AWS::ElasticLoadBalancingV2::Listener",
+      "DependsOn": "PizzaVPCGatewayAttachment",
+      "Properties" : {
+          "DefaultActions" : [
+            {
+              "ForwardConfig": {
+                "TargetGroups": [{
+                  "TargetGroupArn": { "Ref": "PizzaTargetGroup" }
+                 }],
+                "TargetGroupStickinessConfig": {
+                  "DurationSeconds": 86400,
+                  "Enabled": true
+                }
+              },
+              "TargetGroupArn": { "Ref": "PizzaTargetGroup" },
+              "Type": "forward"
+            }
+          ],
+          "LoadBalancerArn" : { "Ref": "PizzaElasticLoadBalancer" },
+          "Port" : 80,
+          "Protocol" : "HTTP"
+        }
+    },
+    "PizzaTargetGroup": {
+      "Type": "AWS::ElasticLoadBalancingV2::TargetGroup",
+      "DependsOn": "PizzaVPCGatewayAttachment",
+      "Properties": {
+        "HealthCheckEnabled": true,
+        "HealthCheckIntervalSeconds": 30,
+        "HealthCheckPath": "/",
+        "HealthCheckPort": "3000",
+        "HealthCheckProtocol": "HTTP",
+        "HealthCheckTimeoutSeconds": 5,
+        "HealthyThresholdCount": 10,
+        "Port": 3000,
+        "Protocol": "HTTP",
+        "UnhealthyThresholdCount": 2,
+        "VpcId": { "Ref": "PizzaVPC" }
       }
     },
     "PizzaAutoScalingGroup": {
@@ -165,27 +176,22 @@
         "Cooldown": "300",
         "DesiredCapacity": "2",
         "HealthCheckGracePeriod": "300",
-        "HealthCheckType": "EC2",
+        "HealthCheckType": "ELB",
+        "LaunchTemplate": {
+          "LaunchTemplateId": { "Ref": "PizzaLaunchTemplate" },
+          "Version": { "Fn::GetAtt" : [ "PizzaLaunchTemplate", "DefaultVersionNumber" ] }
+        },
         "MaxSize": "4",
         "MinSize": "2",
-        "VPCZoneIdentifier": [
-          {
-            "Ref": "PizzaSubnetA"
-          },
-          {
-            "Ref": "PizzaSubnetB"
-          }
-        ],
-        "LaunchConfigurationName": {
-          "Ref": "PizzaLaunchConfiguration"
-        },
-        "LoadBalancerNames": [
-          {
-            "Ref": "PizzaElasticLoadBalancer"
-          }
+        "TargetGroupARNs": [
+          { "Ref": "PizzaTargetGroup" }
         ],
         "TerminationPolicies": [
           "Default"
+        ],
+        "VPCZoneIdentifier": [
+          { "Ref": "PizzaSubnetA" },
+          { "Ref": "PizzaSubnetB" }
         ]
       }
     },
@@ -237,29 +243,30 @@
         ]
       }
     },
-    "PizzaLaunchConfiguration": {
-      "Type": "AWS::AutoScaling::LaunchConfiguration",
-      "Properties": {
-        "AssociatePublicIpAddress": true,
-        "ImageId": { "Ref": "ImageId" },
-        "InstanceType": "t2.micro",
-        "KeyName": { "Ref": "KeyPair" },
-        "IamInstanceProfile": { "Ref": "PizzaInstanceProfile" },
-        "SecurityGroups": [
-          {
-            "Ref": "PizzaEC2SecurityGroup"
+    "PizzaLaunchTemplate": {
+      "Type": "AWS::EC2::LaunchTemplate",
+      "Properties" : {
+          "LaunchTemplateData": {
+            "BlockDeviceMappings": [
+              {
+                "DeviceName": "/dev/xvda",
+                "Ebs": {
+                  "VolumeSize": 10
+                }
+              }
+            ],
+            "IamInstanceProfile": {
+              "Arn": { "Fn::GetAtt" : ["PizzaInstanceProfile", "Arn"] }
+            },
+            "ImageId": { "Ref": "ImageId" },
+            "InstanceType": "t2.micro",
+            "KeyName": { "Ref": "KeyPair" },
+            "SecurityGroupIds": [
+              { "Fn::GetAtt": ["PizzaEC2SecurityGroup", "GroupId"] }
+            ],
+            "UserData": "IyEvYmluL2Jhc2gNCmVjaG8gInN0YXJ0aW5nIHBpenphLWx1dnJzIg0KY2QgL2hvbWUvZWMyLXVzZXIvcGl6emEtbHV2cnMNCm5wbSBzdGFydA=="
           }
-        ],
-        "BlockDeviceMappings": [
-          {
-            "DeviceName": "/dev/xvda",
-            "Ebs": {
-              "VolumeSize": 10
-            }
-          }
-        ],
-        "UserData": "IyEvYmluL2Jhc2gNCmVjaG8gInN0YXJ0aW5nIHBpenphLWx1dnJzIg0KY2QgL2hvbWUvZWMyLXVzZXIvcGl6emEtbHV2cnMNCm5wbSBzdGFydA=="
-      }
+        }
     },
     "PizzaRDSDB": {
       "Type": "AWS::RDS::DBInstance",
@@ -481,72 +488,19 @@
         }
       }
     },
-    "PizzaDecreaseScalingPolicy": {
+    "PizzaScalingPolicy": {
       "Type": "AWS::AutoScaling::ScalingPolicy",
       "Properties": {
-        "AdjustmentType": "ChangeInCapacity",
-        "ScalingAdjustment": "-1",
         "AutoScalingGroupName": {
           "Ref": "PizzaAutoScalingGroup"
+        },
+        "PolicyType": "TargetTrackingScaling",
+        "TargetTrackingConfiguration": {
+          "PredefinedMetricSpecification": {
+            "PredefinedMetricType": "ASGAverageNetworkOut"
+          },
+          "TargetValue": 5000000.0
         }
-      }
-    },
-    "PizzaIncreaseScalingPolicy": {
-      "Type": "AWS::AutoScaling::ScalingPolicy",
-      "Properties": {
-        "AdjustmentType": "ChangeInCapacity",
-        "ScalingAdjustment": "1",
-        "AutoScalingGroupName": {
-          "Ref": "PizzaAutoScalingGroup"
-        }
-      }
-    },
-    "PizzaCloudWatchScaleUpAlarm": {
-      "Type": "AWS::CloudWatch::Alarm",
-      "Properties": {
-        "ActionsEnabled": "true",
-        "ComparisonOperator": "GreaterThanOrEqualToThreshold",
-        "EvaluationPeriods": "1",
-        "MetricName": "NetworkOut",
-        "Namespace": "AWS/EC2",
-        "Period": "300",
-        "Statistic": "Average",
-        "Threshold": "5000000.0",
-        "AlarmActions": [
-          {
-            "Ref": "PizzaIncreaseScalingPolicy"
-          }
-        ],
-        "Dimensions": [
-          {
-            "Name": "AutoScalingGroupName",
-            "Value": "pizza-scaler"
-          }
-        ]
-      }
-    },
-    "PizzaCloudWatchScaleDownAlarm": {
-      "Type": "AWS::CloudWatch::Alarm",
-      "Properties": {
-        "ActionsEnabled": "true",
-        "ComparisonOperator": "LessThanThreshold",
-        "EvaluationPeriods": "1",
-        "MetricName": "NetworkOut",
-        "Namespace": "AWS/EC2",
-        "Period": "300",
-        "Statistic": "Average",
-        "Threshold": "5000000.0",
-        "AlarmActions": [
-          {
-            "Ref": "PizzaDecreaseScalingPolicy"
-          }
-        ],
-        "Dimensions": [
-          {
-            "Name": "AutoScalingGroupName",
-            "Value": "pizza-scaler"
-          }
-        ]
       }
     },
     "PizzaCloudWatchToppingsReadAlarm": {
