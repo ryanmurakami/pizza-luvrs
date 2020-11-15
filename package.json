@@ -16,17 +16,17 @@
     "@hapi/cookie": "11.0.2",
     "@hapi/good": "9.0.1",
     "@hapi/good-squeeze": "6.0.0",
-    "@hapi/hapi": "20.0.1",
+    "@hapi/hapi": "20.0.2",
     "@hapi/inert": "6.0.3",
-    "@hapi/joi": "15.1.0",
     "@hapi/vision": "6.0.1",
-    "aws-sdk": "2.771.0",
+    "aws-sdk": "2.792.0",
     "bcryptjs": "2.4.3",
     "bootflat": "2.0.4",
     "fs-extra": "9.0.1",
     "handlebars": "4.7.6",
+    "joi": "17.3.0",
     "lodash": "4.17.20",
-    "pg": "8.4.1",
+    "pg": "8.5.1",
     "sequelize": "6.3.5"
   }
 }
