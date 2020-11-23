@@ -37,8 +37,10 @@ const Pizza = pgClient.define('pizza', {
   }
 })
 
-Pizza.sync({ force: true }).then(() => {
-  console.log('postgres connection ready')
-})
+Pizza.initialize = async () => {
+  return Pizza.sync({ force: true }).then(() => {
+    console.log('postgres connection ready')
+  })
+}
 
 module.exports = Pizza

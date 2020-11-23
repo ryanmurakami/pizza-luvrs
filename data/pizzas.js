@@ -2,9 +2,13 @@ const { filter, orderBy, values } = require('lodash')
 
 const Pizza = require('../models/pizza')
 const ImageStore = require('../lib/imageStore')
-const PizzaStore = require('./pizzaStore')
+// const PizzaStore = require('./pizzaStore')
 
 const pizzas = {}
+
+async function init () {
+  // await PizzaStore.initialize()
+}
 
 async function create (name, toppings, img, username) {
   const imgUrl = await ImageStore.save(name.replace(/ /g, '-'), img)
@@ -78,5 +82,6 @@ module.exports = {
   create,
   get,
   getForUser,
-  getRecent
+  getRecent,
+  init
 }

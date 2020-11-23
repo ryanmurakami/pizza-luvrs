@@ -11,11 +11,12 @@ const mockPizzas = [
   require('./mock_pizzas/red_forever.json')
 ]
 
-module.exports.hydrate = () => {
+module.exports.hydrate = async () => {
   users.create('ryan', 'pass', () => {})
   users.create('jim', 'pass', () => {})
   users.create('kathy', 'pass', () => {})
 
+  await pizzas.init()
   for (const pizza of mockPizzas) {
     pizzas.batchImport(pizza.name, pizza.toppings, pizza.img, pizza.username)
   }
