@@ -152,16 +152,8 @@
       "Type": "AWS::ElasticLoadBalancingV2::TargetGroup",
       "DependsOn": "PizzaVPCGatewayAttachment",
       "Properties": {
-        "HealthCheckEnabled": true,
-        "HealthCheckIntervalSeconds": 30,
-        "HealthCheckPath": "/",
-        "HealthCheckPort": "3000",
-        "HealthCheckProtocol": "HTTP",
-        "HealthCheckTimeoutSeconds": 5,
-        "HealthyThresholdCount": 10,
         "Port": 3000,
         "Protocol": "HTTP",
-        "UnhealthyThresholdCount": 2,
         "VpcId": { "Ref": "PizzaVPC" }
       }
     },
