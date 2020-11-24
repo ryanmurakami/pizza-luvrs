@@ -2,6 +2,7 @@ const bcrypt = require('bcryptjs')
 const Boom = require('@hapi/boom')
 
 const User = require('../models/user')
+// const dynamoStore = require('./dynamoStore')
 
 const users = {}
 const saltRounds = 10
@@ -14,11 +15,13 @@ async function create (username, passwordString) {
   const passwordHash = hashPassword(passwordString)
   const user = new User(username, passwordHash)
   users[username] = user
+  // await dynamoStore.putItem('users', user)
   return user
 }
 
 async function get (username) {
   return users[username]
+  // return await dynamoStore.getItem('users', 'username', username)
 }
 
 async function authenticate (username, passwordString) {
