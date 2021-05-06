@@ -23,7 +23,7 @@
     "bcryptjs": "2.4.3",
     "bootflat": "2.0.4",
     "fs-extra": "9.0.1",
-    "handlebars": "4.7.6",
+    "handlebars": "4.7.7",
     "joi": "17.3.0",
     "lodash": "4.17.20",
     "pg": "8.5.1",
