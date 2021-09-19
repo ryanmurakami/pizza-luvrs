@@ -1,6 +1,7 @@
 const Hapi = require('@hapi/hapi')
+const { logger } = require('./util/logger')
 
-const plugins = require('./plugins')
+const plugins = require('./util/plugins')
 const routes = require('./routes')
 
 async function startServer () {
@@ -8,7 +9,7 @@ async function startServer () {
     port: 3000
   })
 
-  await plugins.register(server)
+  await plugins.register(server, logger)
   routes.register(server)
 
   try {
@@ -16,11 +17,13 @@ async function startServer () {
     console.log(`Server running at: ${server.info.uri}`)
   } catch (err) {
     console.error(`Server could not start. Error: ${err}`)
+    logger.error(`Server could not start. Error: ${err}`)
   }
 }
 
-process.on('unhandledRejection', err => {
-  console.log(err)
+process.on('unhandledRejection', (reason, promise) => {
+  console.error(`Reason: ${reason.message}, Stack: ${reason?.stack}`)
+  logger.error(`Reason: ${reason.message}, Stack: ${reason?.stack}`)
   process.exit()
 })
 
