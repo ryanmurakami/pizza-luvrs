@@ -8,8 +8,14 @@ module.exports = async (req, h) => {
     return h.redirect('/')
   }
 
+  let user
+
   if (req.method === 'post') {
-    const user = await users.authenticate(req.payload.username.toLowerCase(), req.payload.password)
+    try {
+      user = await users.authenticate(req.payload.username.toLowerCase(), req.payload.password)
+    } catch (err) {
+      console.error(err.message)
+    }
     if (!user) return Boom.unauthorized()
     const sid = String(Math.random())
     await req.server.app.cache.set(sid, user, 0)

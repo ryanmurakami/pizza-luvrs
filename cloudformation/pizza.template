@@ -1,770 +1,521 @@
-{
-  "AWSTemplateFormatVersion": "2010-09-09",
-  "Parameters": {
-    "ImageId": {
-      "Type": "AWS::EC2::Image::Id",
-      "Description": "Enter an EC2 AMI Id to use in the Launch Configuration"
-    },
-    "KeyPair": {
-      "Type": "String",
-      "Default": "pizza-keys",
-      "Description": "Enter the name of a keypair to be used with the EC2 instances"
-    }
-  },
-  "Resources": {
-    "PizzaVPC": {
-      "Type": "AWS::EC2::VPC",
-      "Properties": {
-        "CidrBlock": "10.0.0.0/16",
-        "InstanceTenancy": "default",
-        "EnableDnsSupport": "true",
-        "EnableDnsHostnames": "true",
-        "Tags": [
-          {
-            "Key": "Name",
-            "Value": "pizza-vpc-cloudformation"
-          }
-        ]
-      }
-    },
-    "PizzaSubnetA": {
-      "Type": "AWS::EC2::Subnet",
-      "Properties": {
-        "CidrBlock": "10.0.1.0/24",
-        "AvailabilityZone": {
-          "Fn::Select" : [
-            "0",
-            {
-              "Fn::GetAZs" : { "Ref": "AWS::Region" }
-            }
-          ]
-        },
-        "VpcId": {
-          "Ref": "PizzaVPC"
-        },
-        "Tags": [
-          {
-            "Key": "Name",
-            "Value": "pizza-subnet-a"
-          }
-        ]
-      }
-    },
-    "PizzaSubnetB": {
-      "Type": "AWS::EC2::Subnet",
-      "Properties": {
-        "CidrBlock": "10.0.0.0/24",
-        "AvailabilityZone": {
-          "Fn::Select" : [
-            "1",
-            {
-              "Fn::GetAZs" : { "Ref": "AWS::Region" }
-            }
-          ]
-        },
-        "VpcId": {
-          "Ref": "PizzaVPC"
-        },
-        "Tags": [
-          {
-            "Key": "Name",
-            "Value": "pizza-subnet-b"
-          }
-        ]
-      }
-    },
-    "PizzaInternetGateway": {
-      "Type": "AWS::EC2::InternetGateway",
-      "Properties": {
-      }
-    },
-    "PizzaDHCPOptions": {
-      "Type": "AWS::EC2::DHCPOptions",
-      "Properties": {
-        "DomainName": { "Fn::Sub": [ "${Region}.compute.internal", { "Region": {"Ref" : "AWS::Region" }} ]},
-        "DomainNameServers": [
-          "AmazonProvidedDNS"
-        ]
-      }
-    },
-    "PizzaNetworkAcl": {
-      "Type": "AWS::EC2::NetworkAcl",
-      "Properties": {
-        "VpcId": {
-          "Ref": "PizzaVPC"
-        }
-      }
-    },
-    "PizzaRouteTable": {
-      "Type": "AWS::EC2::RouteTable",
-      "Properties": {
-        "VpcId": {
-          "Ref": "PizzaVPC"
-        }
-      }
-    },
-    "PizzaElasticLoadBalancer": {
-      "Type": "AWS::ElasticLoadBalancingV2::LoadBalancer",
-      "DependsOn": "PizzaVPCGatewayAttachment",
-      "Properties": {
-        "SecurityGroups": [
-          {
-            "Ref": "PizzaELBSecurityGroup"
-          }
-        ],
-        "Subnets": [
-          {
-            "Ref": "PizzaSubnetA"
-          },
-          {
-            "Ref": "PizzaSubnetB"
-          }
-        ],
-        "Scheme": "internet-facing",
-        "Type": "application"
-      }
-    },
-    "PizzaELBListener": {
-      "Type" : "AWS::ElasticLoadBalancingV2::Listener",
-      "DependsOn": "PizzaVPCGatewayAttachment",
-      "Properties" : {
-          "DefaultActions" : [
-            {
-              "ForwardConfig": {
-                "TargetGroups": [{
-                  "TargetGroupArn": { "Ref": "PizzaTargetGroup" }
-                 }],
-                "TargetGroupStickinessConfig": {
-                  "DurationSeconds": 86400,
-                  "Enabled": true
-                }
-              },
-              "TargetGroupArn": { "Ref": "PizzaTargetGroup" },
-              "Type": "forward"
-            }
-          ],
-          "LoadBalancerArn" : { "Ref": "PizzaElasticLoadBalancer" },
-          "Port" : 80,
-          "Protocol" : "HTTP"
-        }
-    },
-    "PizzaTargetGroup": {
-      "Type": "AWS::ElasticLoadBalancingV2::TargetGroup",
-      "DependsOn": "PizzaVPCGatewayAttachment",
-      "Properties": {
-        "Port": 3000,
-        "Protocol": "HTTP",
-        "VpcId": { "Ref": "PizzaVPC" }
-      }
-    },
-    "PizzaAutoScalingGroup": {
-      "Type": "AWS::AutoScaling::AutoScalingGroup",
-      "DependsOn": "PizzaVPCGatewayAttachment",
-      "Properties": {
-        "AvailabilityZones": [
-          { "Fn::GetAtt" : [ "PizzaSubnetA", "AvailabilityZone" ] },
-          { "Fn::GetAtt" : [ "PizzaSubnetB", "AvailabilityZone" ] }
-        ],
-        "Cooldown": "300",
-        "DesiredCapacity": "2",
-        "HealthCheckGracePeriod": "300",
-        "HealthCheckType": "ELB",
-        "LaunchTemplate": {
-          "LaunchTemplateId": { "Ref": "PizzaLaunchTemplate" },
-          "Version": { "Fn::GetAtt" : [ "PizzaLaunchTemplate", "DefaultVersionNumber" ] }
-        },
-        "MaxSize": "4",
-        "MinSize": "2",
-        "TargetGroupARNs": [
-          { "Ref": "PizzaTargetGroup" }
-        ],
-        "TerminationPolicies": [
-          "Default"
-        ],
-        "VPCZoneIdentifier": [
-          { "Ref": "PizzaSubnetA" },
-          { "Ref": "PizzaSubnetB" }
-        ]
-      }
-    },
-    "PizzaEC2Role": {
-      "Type": "AWS::IAM::Role",
-      "Properties": {
-        "AssumeRolePolicyDocument": {
-          "Version": "2012-10-17",
-          "Statement": [
-            {
-              "Effect": "Allow",
-              "Principal": {
-                "Service": [
-                  "ec2.amazonaws.com"
-                ]
-              },
-              "Action": [
-                "sts:AssumeRole"
-              ]
-            }
-          ]
-        },
-        "Path": "/",
-        "Policies": [
-          {
-            "PolicyName": "root",
-            "PolicyDocument": {
-              "Version": "2012-10-17",
-              "Statement": [
-                {
-                    "Effect": "Allow",
-                    "Action": "*",
-                    "Resource": "*"
-                }
-              ]
-            }
-          }
-        ]
-      }
-    },
-    "PizzaInstanceProfile": {
-      "Type": "AWS::IAM::InstanceProfile",
-      "Properties": {
-        "Path": "/",
-        "Roles": [
-          {
-            "Ref": "PizzaEC2Role"
-          }
-        ]
-      }
-    },
-    "PizzaLaunchTemplate": {
-      "Type": "AWS::EC2::LaunchTemplate",
-      "Properties" : {
-          "LaunchTemplateData": {
-            "BlockDeviceMappings": [
-              {
-                "DeviceName": "/dev/xvda",
-                "Ebs": {
-                  "VolumeSize": 10
-                }
-              }
-            ],
-            "IamInstanceProfile": {
-              "Arn": { "Fn::GetAtt" : ["PizzaInstanceProfile", "Arn"] }
-            },
-            "ImageId": { "Ref": "ImageId" },
-            "InstanceType": "t2.micro",
-            "KeyName": { "Ref": "KeyPair" },
-            "SecurityGroupIds": [
-              { "Fn::GetAtt": ["PizzaEC2SecurityGroup", "GroupId"] }
-            ],
-            "UserData": "IyEvYmluL2Jhc2gNCmVjaG8gInN0YXJ0aW5nIHBpenphLWx1dnJzIg0KY2QgL2hvbWUvZWMyLXVzZXIvcGl6emEtbHV2cnMNCm5wbSBzdGFydA=="
-          }
-        }
-    },
-    "PizzaRDSDB": {
-      "Type": "AWS::RDS::DBInstance",
-      "DependsOn": "PizzaVPCGatewayAttachment",
-      "Properties": {
-        "AllocatedStorage": "5",
-        "AllowMajorVersionUpgrade": "false",
-        "AutoMinorVersionUpgrade": "true",
-        "DBInstanceClass": "db.t2.micro",
-        "Port": "5432",
-        "PubliclyAccessible": "true",
-        "StorageType": "gp2",
-        "BackupRetentionPeriod": "7",
-        "MasterUsername": "awsuser",
-        "MasterUserPassword": "MyPassword",
-        "PreferredBackupWindow": "07:47-08:17",
-        "PreferredMaintenanceWindow": "mon:12:54-mon:13:24",
-        "DBName": "MyDatabase",
-        "Engine": "postgres",
-        "EngineVersion": "12.5",
-        "LicenseModel": "postgresql-license",
-        "DBSubnetGroupName": {
-          "Ref": "PizzaDBSubnetGroup"
-        },
-        "VPCSecurityGroups": [
-          {
-            "Ref": "PizzaRDSSecurityGroup"
-          }
-        ],
-        "Tags": [
-          {
-            "Key": "workload-type",
-            "Value": "other"
-          }
-        ]
-      }
-    },
-    "PizzaTableToppings": {
-      "Type": "AWS::DynamoDB::Table",
-      "Properties": {
-        "AttributeDefinitions": [
-          {
-            "AttributeName": "id",
-            "AttributeType": "S"
-          }
-        ],
-        "KeySchema": [
-          {
-            "AttributeName": "id",
-            "KeyType": "HASH"
-          }
-        ],
-        "ProvisionedThroughput": {
-          "ReadCapacityUnits": "5",
-          "WriteCapacityUnits": "5"
-        }
-      }
-    },
-    "PizzaTableUsers": {
-      "Type": "AWS::DynamoDB::Table",
-      "Properties": {
-        "AttributeDefinitions": [
-          {
-            "AttributeName": "username",
-            "AttributeType": "S"
-          }
-        ],
-        "KeySchema": [
-          {
-            "AttributeName": "username",
-            "KeyType": "HASH"
-          }
-        ],
-        "ProvisionedThroughput": {
-          "ReadCapacityUnits": "5",
-          "WriteCapacityUnits": "5"
-        }
-      }
-    },
-    "PizzaS3Bucket": {
-      "Type": "AWS::S3::Bucket",
-      "Properties": {
-        "AccessControl": "Private",
-        "CorsConfiguration": {
-          "CorsRules": [
-            {
-              "AllowedHeaders": [
-                "Authorization"
-              ],
-              "AllowedMethods": [
-                "GET"
-              ],
-              "AllowedOrigins": [
-                "*"
-              ],
-              "MaxAge": "3000"
-            }
-          ]
-        },
-        "VersioningConfiguration": {
-          "Status": "Suspended"
-        }
-      }
-    },
-    "PizzaDBSubnetGroup": {
-      "Type": "AWS::RDS::DBSubnetGroup",
-      "Properties": {
-        "DBSubnetGroupDescription": "default",
-        "SubnetIds": [
-          { "Ref": "PizzaSubnetA" },
-          { "Ref": "PizzaSubnetB" }
-        ]
-      }
-    },
-    "PizzaSNSTopic": {
-      "Type": "AWS::SNS::Topic",
-      "Properties": {
-        "DisplayName": "dynamodb"
-      }
-    },
-    "PizzaEC2SecurityGroup": {
-      "Type": "AWS::EC2::SecurityGroup",
-      "Properties": {
-        "GroupDescription": "Security group for pizza luvrs ec2 instances",
-        "VpcId": {
-          "Ref": "PizzaVPC"
-        }
-      }
-    },
-    "PizzaELBSecurityGroup": {
-      "Type": "AWS::EC2::SecurityGroup",
-      "Properties": {
-        "GroupDescription": "Security group for the pizza luvrs ELB load balancer",
-        "VpcId": {
-          "Ref": "PizzaVPC"
-        }
-      }
-    },
-    "PizzaRDSSecurityGroup": {
-      "Type": "AWS::EC2::SecurityGroup",
-      "Properties": {
-        "GroupDescription": "Security group for the pizza luvrs RDS database",
-        "VpcId": {
-          "Ref": "PizzaVPC"
-        }
-      }
-    },
-    "PizzaSNSTopicPolicy": {
-      "Type": "AWS::SNS::TopicPolicy",
-      "Properties": {
-        "Topics": [
-          {
-            "Ref": "PizzaSNSTopic"
-          }
-        ],
-        "PolicyDocument": {
-          "Version": "2008-10-17",
-          "Id": "__default_policy_ID",
-          "Statement": [
-            {
-              "Sid": "__default_statement_ID",
-              "Effect": "Allow",
-              "Principal": {
-                "AWS": "*"
-              },
-              "Action": [
-                "SNS:GetTopicAttributes",
-                "SNS:SetTopicAttributes",
-                "SNS:AddPermission",
-                "SNS:RemovePermission",
-                "SNS:DeleteTopic",
-                "SNS:Subscribe",
-                "SNS:ListSubscriptionsByTopic",
-                "SNS:Publish",
-                "SNS:Receive"
-              ],
-              "Resource": {
-                "Ref": "PizzaSNSTopic"
-              },
-              "Condition": {
-                "StringEquals": {
-                  "AWS:SourceOwner": { "Ref": "AWS::AccountId" }
-                }
-              }
-            }
-          ]
-        }
-      }
-    },
-    "PizzaS3BucketPolicy": {
-      "Type": "AWS::S3::BucketPolicy",
-      "Properties": {
-        "Bucket": {
-          "Ref": "PizzaS3Bucket"
-        },
-        "PolicyDocument": {
-          "Version": "2012-10-17",
-          "Id": "Policy1468466027141",
-          "Statement": [
-            {
-              "Sid": "Stmt1468466021537",
-              "Effect": "Allow",
-              "Principal": "*",
-              "Action": "s3:GetObject",
-              "Resource": {
-                "Fn::Join": [
-                  "",
-                  [
-                    "arn:aws:s3:::",
-                    {
-                      "Ref": "PizzaS3Bucket"
-                    },
-                    "/*"
-                  ]
-                ]
-              }
-            }
-          ]
-        }
-      }
-    },
-    "PizzaScalingPolicy": {
-      "Type": "AWS::AutoScaling::ScalingPolicy",
-      "Properties": {
-        "AutoScalingGroupName": {
-          "Ref": "PizzaAutoScalingGroup"
-        },
-        "PolicyType": "TargetTrackingScaling",
-        "TargetTrackingConfiguration": {
-          "PredefinedMetricSpecification": {
-            "PredefinedMetricType": "ASGAverageNetworkOut"
-          },
-          "TargetValue": 5000000.0
-        }
-      }
-    },
-    "PizzaCloudWatchToppingsReadAlarm": {
-      "Type": "AWS::CloudWatch::Alarm",
-      "Properties": {
-        "ActionsEnabled": "true",
-        "ComparisonOperator": "GreaterThanOrEqualToThreshold",
-        "EvaluationPeriods": "5",
-        "MetricName": "ConsumedReadCapacityUnits",
-        "Namespace": "AWS/DynamoDB",
-        "Period": "60",
-        "Statistic": "Sum",
-        "Threshold": "240.0",
-        "AlarmActions": [
-          { "Ref": "PizzaSNSTopic" }
-        ],
-        "Dimensions": [
-          {
-            "Name": "TableName",
-            "Value": "toppings"
-          }
-        ]
-      }
-    },
-    "PizzaCloudWatchToppingsWriteAlarm": {
-      "Type": "AWS::CloudWatch::Alarm",
-      "Properties": {
-        "ActionsEnabled": "true",
-        "ComparisonOperator": "GreaterThanOrEqualToThreshold",
-        "EvaluationPeriods": "5",
-        "MetricName": "ConsumedWriteCapacityUnits",
-        "Namespace": "AWS/DynamoDB",
-        "Period": "60",
-        "Statistic": "Sum",
-        "Threshold": "240.0",
-        "AlarmActions": [
-          { "Ref": "PizzaSNSTopic" }
-        ],
-        "Dimensions": [
-          {
-            "Name": "TableName",
-            "Value": "toppings"
-          }
-        ]
-      }
-    },
-    "PizzaCloudWatchUsersReadAlarm": {
-      "Type": "AWS::CloudWatch::Alarm",
-      "Properties": {
-        "ActionsEnabled": "true",
-        "ComparisonOperator": "GreaterThanOrEqualToThreshold",
-        "EvaluationPeriods": "5",
-        "MetricName": "ConsumedReadCapacityUnits",
-        "Namespace": "AWS/DynamoDB",
-        "Period": "60",
-        "Statistic": "Sum",
-        "Threshold": "240.0",
-        "AlarmActions": [
-          { "Ref": "PizzaSNSTopic" }
-        ],
-        "Dimensions": [
-          {
-            "Name": "TableName",
-            "Value": "users"
-          }
-        ]
-      }
-    },
-    "PizzaCloudWatchUsersWriteAlarm": {
-      "Type": "AWS::CloudWatch::Alarm",
-      "Properties": {
-        "ActionsEnabled": "true",
-        "ComparisonOperator": "GreaterThanOrEqualToThreshold",
-        "EvaluationPeriods": "5",
-        "MetricName": "ConsumedWriteCapacityUnits",
-        "Namespace": "AWS/DynamoDB",
-        "Period": "60",
-        "Statistic": "Sum",
-        "Threshold": "240.0",
-        "AlarmActions": [
-          { "Ref": "PizzaSNSTopic" }
-        ],
-        "Dimensions": [
-          {
-            "Name": "TableName",
-            "Value": "users"
-          }
-        ]
-      }
-    },
-    "PizzaNetworkAclEntry": {
-      "Type": "AWS::EC2::NetworkAclEntry",
-      "Properties": {
-        "CidrBlock": "0.0.0.0/0",
-        "Egress": "true",
-        "Protocol": "-1",
-        "RuleAction": "allow",
-        "RuleNumber": "100",
-        "NetworkAclId": {
-          "Ref": "PizzaNetworkAcl"
-        }
-      }
-    },
-    "PizzaNetworkAclEntry2": {
-      "Type": "AWS::EC2::NetworkAclEntry",
-      "Properties": {
-        "CidrBlock": "0.0.0.0/0",
-        "Protocol": "-1",
-        "RuleAction": "allow",
-        "RuleNumber": "100",
-        "NetworkAclId": {
-          "Ref": "PizzaNetworkAcl"
-        }
-      }
-    },
-    "PizzaSubnetNetworkAclAssocationA": {
-      "Type": "AWS::EC2::SubnetNetworkAclAssociation",
-      "Properties": {
-        "NetworkAclId": {
-          "Ref": "PizzaNetworkAcl"
-        },
-        "SubnetId": {
-          "Ref": "PizzaSubnetA"
-        }
-      }
-    },
-    "PizzaSubnetNetworkAclAssocationB": {
-      "Type": "AWS::EC2::SubnetNetworkAclAssociation",
-      "Properties": {
-        "NetworkAclId": {
-          "Ref": "PizzaNetworkAcl"
-        },
-        "SubnetId": {
-          "Ref": "PizzaSubnetB"
-        }
-      }
-    },
-    "PizzaSubnetARouteTableAssociation" : {
-      "Type" : "AWS::EC2::SubnetRouteTableAssociation",
-      "Properties" : {
-        "SubnetId" : {
-          "Ref" : "PizzaSubnetA"
-        },
-        "RouteTableId" : {
-          "Ref" : "PizzaRouteTable"
-        }
-      }
-    },
-    "PizzaSubnetBRouteTableAssociation" : {
-      "Type" : "AWS::EC2::SubnetRouteTableAssociation",
-      "Properties" : {
-        "SubnetId" : {
-          "Ref" : "PizzaSubnetB"
-        },
-        "RouteTableId" : {
-          "Ref" : "PizzaRouteTable"
-        }
-      }
-    },
-    "PizzaVPCGatewayAttachment": {
-      "Type": "AWS::EC2::VPCGatewayAttachment",
-      "Properties": {
-        "VpcId": {
-          "Ref": "PizzaVPC"
-        },
-        "InternetGatewayId": {
-          "Ref": "PizzaInternetGateway"
-        }
-      }
-    },
-    "PizzaVPCRoute": {
-      "Type": "AWS::EC2::Route",
-      "DependsOn": "PizzaVPCGatewayAttachment",
-      "Properties": {
-        "DestinationCidrBlock": "0.0.0.0/0",
-        "RouteTableId": {
-          "Ref": "PizzaRouteTable"
-        },
-        "GatewayId": {
-          "Ref": "PizzaInternetGateway"
-        }
-      }
-    },
-    "PizzaVPCDHCPAssociation": {
-      "Type": "AWS::EC2::VPCDHCPOptionsAssociation",
-      "Properties": {
-        "VpcId": {
-          "Ref": "PizzaVPC"
-        },
-        "DhcpOptionsId": {
-          "Ref": "PizzaDHCPOptions"
-        }
-      }
-    },
-    "PizzaEC2SGIngressRuleForSSH": {
-      "Type": "AWS::EC2::SecurityGroupIngress",
-      "Properties": {
-        "GroupId": {
-          "Ref": "PizzaEC2SecurityGroup"
-        },
-        "IpProtocol": "tcp",
-        "FromPort": "22",
-        "ToPort": "22",
-        "CidrIp": "0.0.0.0/0"
-      }
-    },
-    "PizzaEC2SGIngressRuleForPort3000": {
-      "Type": "AWS::EC2::SecurityGroupIngress",
-      "Properties": {
-        "GroupId": {
-          "Ref": "PizzaEC2SecurityGroup"
-        },
-        "IpProtocol": "tcp",
-        "FromPort": "3000",
-        "ToPort": "3000",
-        "CidrIp": "0.0.0.0/0"
-      }
-    },
-    "PizzaELBSGIngressRuleForPort80": {
-      "Type": "AWS::EC2::SecurityGroupIngress",
-      "Properties": {
-        "GroupId": {
-          "Ref": "PizzaELBSecurityGroup"
-        },
-        "IpProtocol": "tcp",
-        "FromPort": "80",
-        "ToPort": "80",
-        "CidrIp": "0.0.0.0/0"
-      }
-    },
-    "PizzaRDSSGIngressRuleForPort5432": {
-      "Type": "AWS::EC2::SecurityGroupIngress",
-      "Properties": {
-        "GroupId": {
-          "Ref": "PizzaRDSSecurityGroup"
-        },
-        "IpProtocol": "tcp",
-        "FromPort": "5432",
-        "ToPort": "5432",
-        "CidrIp": "0.0.0.0/0"
-      }
-    },
-    "PizzaEC2SGEgressRule": {
-      "Type": "AWS::EC2::SecurityGroupEgress",
-      "Properties": {
-        "GroupId": {
-          "Ref": "PizzaEC2SecurityGroup"
-        },
-        "IpProtocol": "-1",
-        "CidrIp": "0.0.0.0/0"
-      }
-    },
-    "PizzaELBSGEgressRule": {
-      "Type": "AWS::EC2::SecurityGroupEgress",
-      "Properties": {
-        "GroupId": {
-          "Ref": "PizzaELBSecurityGroup"
-        },
-        "IpProtocol": "-1",
-        "CidrIp": "0.0.0.0/0"
-      }
-    },
-    "PizzaRDSSGEgressRule": {
-      "Type": "AWS::EC2::SecurityGroupEgress",
-      "Properties": {
-        "GroupId": {
-          "Ref": "PizzaRDSSecurityGroup"
-        },
-        "IpProtocol": "-1",
-        "CidrIp": "0.0.0.0/0"
-      }
-    }
-  },
-  "Description": "pizza-luvrs infrastructure"
-}
+AWSTemplateFormatVersion: '2010-09-09'
+Description: pizza-luvrs infrastructure
+
+Parameters:
+  ImageId:
+    Type: AWS::EC2::Image::Id
+    Description: Enter an EC2 AMI Id to use in the Launch Configuration
+  KeyPair:
+    Type: String
+    Default: pizza-keys
+    Description: Enter the name of a keypair to be used with the EC2 instances
+
+Resources:
+  PizzaVPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: 10.0.0.0/16
+      EnableDnsHostnames: true
+      EnableDnsSupport: true
+      InstanceTenancy: default
+      Tags:
+        - Key: Name
+          Value: pizza-vpc-cloudformation
+
+  PizzaSubnetA:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone: !Select
+        - 0
+        - !GetAZs
+          Ref: 'AWS::Region'
+      CidrBlock: 10.0.1.0/24
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value: pizza-subnet-a
+      VpcId: !Ref PizzaVPC
+
+  PizzaSubnetB:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone: !Select
+        - 1
+        - !GetAZs
+          Ref: 'AWS::Region'
+      CidrBlock: 10.0.0.0/24
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value: pizza-subnet-b
+      VpcId: !Ref PizzaVPC
+
+  PizzaInternetGateway:
+    Type: AWS::EC2::InternetGateway
+
+  PizzaDHCPOptions:
+    Type: AWS::EC2::DHCPOptions
+    Properties:
+      DomainName: !Sub '${AWS::Region}.compute.internal'
+      DomainNameServers:
+        - AmazonProvidedDNS
+
+  PizzaNetworkAcl:
+    Type: AWS::EC2::NetworkAcl
+    Properties:
+      VpcId: !Ref PizzaVPC
+
+  PizzaRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref PizzaVPC
+
+  PizzaElasticLoadBalancer:
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    DependsOn: PizzaVPCGatewayAttachment
+    Properties:
+      Scheme: internet-facing
+      SecurityGroups:
+        - !Ref PizzaELBSecurityGroup
+      Subnets:
+        - !Ref PizzaSubnetA
+        - !Ref PizzaSubnetB
+      Type: application
+
+  PizzaELBListener:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    DependsOn: PizzaVPCGatewayAttachment
+    Properties:
+      DefaultActions:
+        - ForwardConfig:
+            TargetGroups:
+              - TargetGroupArn: !Ref PizzaTargetGroup
+            TargetGroupStickinessConfig:
+              DurationSeconds: 86400
+              Enabled: true
+          TargetGroupArn: !Ref PizzaTargetGroup
+          Type: forward
+      LoadBalancerArn: !Ref PizzaElasticLoadBalancer
+      Port: 80
+      Protocol: HTTP
+
+  PizzaTargetGroup:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    DependsOn: PizzaVPCGatewayAttachment
+    Properties:
+      Port: 3000
+      Protocol: HTTP
+      TargetGroupAttributes:
+        - Key: stickiness.enabled
+          Value: true
+      VpcId: !Ref PizzaVPC
+
+  PizzaAutoScalingGroup:
+    Type: AWS::AutoScaling::AutoScalingGroup
+    DependsOn: PizzaVPCGatewayAttachment
+    Properties:
+      AvailabilityZones:
+        - !GetAtt PizzaSubnetA.AvailabilityZone
+        - !GetAtt PizzaSubnetB.AvailabilityZone
+      Cooldown: 300
+      DesiredCapacity: 2
+      HealthCheckGracePeriod: 300
+      HealthCheckType: ELB
+      LaunchTemplate:
+        LaunchTemplateId: !Ref PizzaLaunchTemplate
+        Version: !GetAtt PizzaLaunchTemplate.DefaultVersionNumber
+      MaxSize: 4
+      MinSize: 2
+      TargetGroupARNs:
+        - !Ref PizzaTargetGroup
+      TerminationPolicies:
+        - Default
+      VPCZoneIdentifier:
+        - !Ref PizzaSubnetA
+        - !Ref PizzaSubnetB
+
+  PizzaEC2Role:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Action:
+              - sts:AssumeRole
+            Effect: Allow
+            Principal:
+              Service:
+                - ec2.amazonaws.com
+        Version: '2012-10-17'
+      Path: '/'
+      Policies:
+        - PolicyName: root
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action: '*'
+                Resource: '*'
+
+  PizzaInstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      Path: '/'
+      Roles:
+        - !Ref PizzaEC2Role
+
+  PizzaLaunchTemplate:
+    Type: AWS::EC2::LaunchTemplate
+    Properties:
+      LaunchTemplateData:
+        BlockDeviceMappings:
+          - DeviceName: '/dev/xvda'
+            Ebs:
+              VolumeSize: 10
+        IamInstanceProfile:
+          Arn: !GetAtt PizzaInstanceProfile.Arn
+        ImageId: !Ref ImageId
+        InstanceType: t2.micro
+        KeyName: !Ref KeyPair
+        SecurityGroupIds:
+          - !GetAtt PizzaEC2SecurityGroup.GroupId
+        UserData: 'IyEvYmluL2Jhc2gNCmVjaG8gInN0YXJ0aW5nIHBpenphLWx1dnJzIg0KY2QgL2hvbWUvZWMyLXVzZXIvcGl6emEtbHV2cnMNCm5wbSBzdGFydA=='
+
+  PizzaRDSDB:
+    Type: AWS::RDS::DBInstance
+    DependsOn: PizzaVPCGatewayAttachment
+    Properties:
+      AllocatedStorage: 5
+      AllowMajorVersionUpgrade: false
+      AutoMinorVersionUpgrade: true
+      DBInstanceClass: db.t2.micro
+      Port: 5432
+      PubliclyAccessible: true
+      StorageType: gp2
+      BackupRetentionPeriod: 7
+      MasterUsername: awsuser
+      MasterUserPassword: MyPassword
+      PreferredBackupWindow: 07:47-08:17
+      PreferredMaintenanceWindow: mon:12:54-mon:13:24
+      DBName: MyDatabase
+      Engine: postgres
+      EngineVersion: 12.7
+      LicenseModel: postgresql-license
+      DBSubnetGroupName: !Ref PizzaDBSubnetGroup
+      VPCSecurityGroups:
+        - !Ref PizzaRDSSecurityGroup
+      Tags:
+        - Key: workload-type
+          Value: other
+
+  PizzaTableToppings:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      AttributeDefinitions:
+        - AttributeName: id
+          AttributeType: S
+      KeySchema:
+        - AttributeName: id
+          KeyType: HASH
+      ProvisionedThroughput:
+        ReadCapacityUnits: 5
+        WriteCapacityUnits: 5
+
+  PizzaTableUsers:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      AttributeDefinitions:
+        - AttributeName: username
+          AttributeType: S
+      KeySchema:
+        - AttributeName: username
+          KeyType: HASH
+      ProvisionedThroughput:
+        ReadCapacityUnits: 5
+        WriteCapacityUnits: 5
+
+  PizzaS3Bucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      AccessControl: Private
+      CorsConfiguration:
+        CorsRules:
+          - AllowedHeaders:
+              - Authorization
+            AllowedMethods:
+              - GET
+            AllowedOrigins:
+              - '*'
+            MaxAge: 3000
+      VersioningConfiguration:
+        Status: Suspended
+
+  PizzaDBSubnetGroup:
+    Type: AWS::RDS::DBSubnetGroup
+    Properties:
+      DBSubnetGroupDescription: default
+      SubnetIds:
+        - !Ref PizzaSubnetA
+        - !Ref PizzaSubnetB
+
+  PizzaSNSTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      DisplayName: dynamodb
+
+  PizzaEC2SecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Security group for pizza luvrs ec2 instances
+      VpcId: !Ref PizzaVPC
+
+  PizzaELBSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Security group for the pizza luvrs ELB load balancer
+      VpcId: !Ref PizzaVPC
+
+  PizzaRDSSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Security group for the pizza luvrs RDS database
+      VpcId: !Ref PizzaVPC
+
+  PizzaSNSTopicPolicy:
+    Type: AWS::SNS::TopicPolicy
+    Properties:
+      Topics:
+        - !Ref PizzaSNSTopic
+      PolicyDocument:
+        Version: '2008-10-17'
+        Id: __default_policy_ID
+        Statement:
+          - Sid: __default_statement_ID
+            Effect: Allow
+            Principal:
+              AWS: '*'
+            Action:
+              - SNS:GetTopicAttributes
+              - SNS:SetTopicAttributes
+              - SNS:AddPermission
+              - SNS:RemovePermission
+              - SNS:DeleteTopic
+              - SNS:Subscribe
+              - SNS:ListSubscriptionsByTopic
+              - SNS:Publish
+              - SNS:Receive
+            Resource: !Ref PizzaSNSTopic
+            Condition:
+              StringEquals:
+                AWS:SourceOwner: !Ref AWS::AccountId
+
+  PizzaS3BucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref PizzaS3Bucket
+      PolicyDocument:
+        Version: '2012-10-17'
+        Id: Policy1468466027141
+        Statement:
+        - Sid: Stmt1468466021537
+          Effect: Allow
+          Principal: '*'
+          Action: s3:GetObject
+          Resource: !Sub 'arn:aws:s3:::${PizzaS3Bucket}/*'
+
+  PizzaScalingPolicy:
+    Type: AWS::AutoScaling::ScalingPolicy
+    Properties:
+      AutoScalingGroupName: !Ref PizzaAutoScalingGroup
+      PolicyType: TargetTrackingScaling
+      TargetTrackingConfiguration:
+        PredefinedMetricSpecification:
+          PredefinedMetricType: ASGAverageNetworkOut
+        TargetValue: 5000000
+
+  PizzaCloudWatchToppingsReadAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      ActionsEnabled: true
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      EvaluationPeriods: 5
+      MetricName: ConsumedReadCapacityUnits
+      Namespace: AWS/DynamoDB
+      Period: 60
+      Statistic: Sum
+      Threshold: 240.0
+      AlarmActions:
+        - !Ref PizzaSNSTopic
+      Dimensions:
+        - Name: TableName
+          Value: toppings
+
+  PizzaCloudWatchToppingsWriteAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      ActionsEnabled: true
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      EvaluationPeriods: 5
+      MetricName: ConsumedWriteCapacityUnits
+      Namespace: AWS/DynamoDB
+      Period: 60
+      Statistic: Sum
+      Threshold: 240.0
+      AlarmActions:
+        - !Ref PizzaSNSTopic
+      Dimensions:
+        - Name: TableName
+          Value: toppings
+
+  PizzaCloudWatchUsersReadAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      ActionsEnabled: true
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      EvaluationPeriods: 5
+      MetricName: ConsumedReadCapacityUnits
+      Namespace: AWS/DynamoDB
+      Period: 60
+      Statistic: Sum
+      Threshold: 240.0
+      AlarmActions:
+        - !Ref PizzaSNSTopic
+      Dimensions:
+        - Name: TableName
+          Value: users
+
+  PizzaCloudWatchUsersWriteAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      ActionsEnabled: true
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      EvaluationPeriods: 5
+      MetricName: ConsumedWriteCapacityUnits
+      Namespace: AWS/DynamoDB
+      Period: 60
+      Statistic: Sum
+      Threshold: 240.0
+      AlarmActions:
+        - !Ref PizzaSNSTopic
+      Dimensions:
+        - Name: TableName
+          Value: users
+
+  PizzaNetworkAclEntry:
+    Type: AWS::EC2::NetworkAclEntry
+    Properties:
+      CidrBlock: 0.0.0.0/0
+      Egress: true
+      Protocol: '-1'
+      RuleAction: allow
+      RuleNumber: 100
+      NetworkAclId: !Ref PizzaNetworkAcl
+
+  PizzaNetworkAclEntry2:
+    Type: AWS::EC2::NetworkAclEntry
+    Properties:
+      CidrBlock: 0.0.0.0/0
+      Protocol: '-1'
+      RuleAction: allow
+      RuleNumber: 100
+      NetworkAclId: !Ref PizzaNetworkAcl
+
+  PizzaSubnetNetworkAclAssocationA:
+    Type: AWS::EC2::SubnetNetworkAclAssociation
+    Properties:
+      NetworkAclId: !Ref PizzaNetworkAcl
+      SubnetId: !Ref PizzaSubnetA
+
+  PizzaSubnetNetworkAclAssocationB:
+    Type: AWS::EC2::SubnetNetworkAclAssociation
+    Properties:
+      NetworkAclId: !Ref PizzaNetworkAcl
+      SubnetId: !Ref PizzaSubnetB
+
+  PizzaSubnetARouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PizzaSubnetA
+      RouteTableId: !Ref PizzaRouteTable
+
+  PizzaSubnetBRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PizzaSubnetB
+      RouteTableId: !Ref PizzaRouteTable
+
+  PizzaVPCGatewayAttachment:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      VpcId: !Ref PizzaVPC
+      InternetGatewayId: !Ref PizzaInternetGateway
+
+  PizzaVPCRoute:
+    Type: AWS::EC2::Route
+    DependsOn: PizzaVPCGatewayAttachment
+    Properties:
+      DestinationCidrBlock: 0.0.0.0/0
+      RouteTableId: !Ref PizzaRouteTable
+      GatewayId: !Ref PizzaInternetGateway
+
+  PizzaVPCDHCPAssociation:
+    Type: AWS::EC2::VPCDHCPOptionsAssociation
+    Properties:
+      VpcId: !Ref PizzaVPC
+      DhcpOptionsId: !Ref PizzaDHCPOptions
+
+  PizzaEC2SGIngressRuleForSSH:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      GroupId: !Ref PizzaEC2SecurityGroup
+      IpProtocol: tcp
+      FromPort: 22
+      ToPort: 22
+      CidrIp: 0.0.0.0/0
+
+  PizzaEC2SGIngressRuleForPort3000:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      CidrIp: 0.0.0.0/0
+      GroupId: !Ref PizzaEC2SecurityGroup
+      IpProtocol: tcp
+      FromPort: 3000
+      ToPort: 3000
+
+  PizzaELBSGIngressRuleForPort80:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      CidrIp: 0.0.0.0/0
+      GroupId: !Ref PizzaELBSecurityGroup
+      IpProtocol: tcp
+      FromPort: 80
+      ToPort: 80
+
+  PizzaRDSSGIngressRuleForPort5432:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      CidrIp: 0.0.0.0/0
+      GroupId: !Ref PizzaRDSSecurityGroup
+      IpProtocol: tcp
+      FromPort: 5432
+      ToPort: 5432
+
+  PizzaEC2SGEgressRule:
+    Type: AWS::EC2::SecurityGroupEgress
+    Properties:
+      CidrIp: 0.0.0.0/0
+      GroupId: !Ref PizzaEC2SecurityGroup
+      IpProtocol: '-1'
+
+  PizzaELBSGEgressRule:
+    Type: AWS::EC2::SecurityGroupEgress
+    Properties:
+      CidrIp: 0.0.0.0/0
+      GroupId: !Ref PizzaELBSecurityGroup
+      IpProtocol: '-1'
+
+  PizzaRDSSGEgressRule:
+    Type: AWS::EC2::SecurityGroupEgress
+    Properties:
+      CidrIp: 0.0.0.0/0
+      GroupId: !Ref PizzaRDSSecurityGroup
+      IpProtocol: '-1'

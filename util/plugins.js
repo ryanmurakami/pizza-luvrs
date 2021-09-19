@@ -1,38 +1,16 @@
 const Cookie = require('@hapi/cookie')
-const Good = require('@hapi/good')
 const Handlebars = require('handlebars')
 const Inert = require('@hapi/inert')
 const Vision = require('@hapi/vision')
 
-const GoodFile = require('./lib/good-file')
-const mockData = require('./data/mock')
+const mockData = require('../data/mock')
 
-const goodOptions = {
-  reporters: {
-    file: [{
-      module: '@hapi/good-squeeze',
-      name: 'Squeeze',
-      args: [{ response: '*', request: '*', error: '*' }]
-    }, {
-      module: '@hapi/good-squeeze',
-      name: 'SafeJson'
-    }, {
-      module: GoodFile,
-      args: ['./log/hapi_log']
-    }]
-  }
-}
-
-module.exports.register = async server => {
+module.exports.register = async (server, logger) => {
   // register plugins
   await server.register([
     Inert,
     Vision,
-    Cookie,
-    {
-      plugin: Good,
-      options: goodOptions
-    }
+    Cookie
   ])
 
   // setup template rendering
@@ -42,9 +20,9 @@ module.exports.register = async server => {
     },
     layout: true,
     relativeTo: __dirname,
-    path: './templates',
-    partialsPath: './templates/partials',
-    helpersPath: './templates/helpers'
+    path: '../templates',
+    partialsPath: '../templates/partials',
+    helpersPath: '../templates/helpers'
   })
 
   // setup cache
@@ -78,6 +56,25 @@ module.exports.register = async server => {
   })
 
   server.auth.default('session')
+
+  // logging
+
+  server.events.on('log', (_, event) => {
+    if (event.error) {
+      logger.error(`Server error: ${event?.error?.message || 'unknown'}`);
+    } else {
+      logger.info(`Server event: ${event}`)
+    }
+  })
+
+  server.events.on('request', (_, event) => {
+    if (event?.tags?.includes('unauthenticated')) return
+    if (event?.tags?.includes('error')) {
+      logger.error(`Request error: ${event?.data || event?.error?.message || 'unknown'}`);
+    } else {
+      logger.info(`Request event: ${event}`)
+    }
+  })
 
   // setup data
   mockData.hydrate()
