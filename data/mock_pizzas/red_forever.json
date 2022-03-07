@@ -1,6 +1,6 @@
 {
 	"name": "Red Forever",
 	"toppings": ["dough_crust", "marinara_sauce", "mozzarella_cheese", "pepperoni", "ham"],
-	"img": "/assets/pizzas/red-forever.png",
+	"img": "//pizza-luvrs-a-unique-string-dhvani.s3.ap-southeast-2.amazonaws.com/pizzas/red-forever.png",
 	"username": "jim"
 }

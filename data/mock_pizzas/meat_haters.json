@@ -1,6 +1,6 @@
 {
 	"name": "Meat Haters",
 	"toppings": ["dough_crust", "marinara_sauce", "mozzarella_cheese", "cheddar_cheese", "mushrooms", "banana_peppers", "green_peppers"],
-	"img": "/assets/pizzas/meat-haters.png",
+	"img": "//pizza-luvrs-a-unique-string-dhvani.s3.ap-southeast-2.amazonaws.com/pizzas/meat-haters.png",
 	"username": "ryan"
 }

@@ -17,7 +17,7 @@ function loadImages () {
   $.each(toppings, function (key, val) {
     const img = new window.Image()
     img.setAttribute('crossOrigin', 'anonymous')
-    img.src = '/assets/toppings/' + val.image
+    img.src = '//pizza-luvrs-a-unique-string-dhvani.s3.ap-southeast-2.amazonaws.com/toppings/' + val.image
     val.img = img
   })
 }
